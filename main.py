@@ -52,6 +52,7 @@ def generateatile(zoom, x, y):
     # The image is created from the aggregate object, a color map and aggregation function.
     # Then the object is assighed to a bytestream and returned
     img = tf.shade(agg, cmap=CET_L18, how='log')
+    img= tf.dynspread(img)
     img_io = img.to_bytesio('PNG')
     img_io.seek(0)
     bytes = img_io.read()
