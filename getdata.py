@@ -3,6 +3,7 @@ from pathlib import Path
 from zipfile import ZipFile
 import urllib.request
 import pandas as pd 
+import numpy as np
 import utm
 
 
@@ -22,24 +23,31 @@ if not my_file.is_file():
 
 
 # read using pandas, selecting only relevant columns
-df=pd.read_csv('data/geoc_inv/geoc_inv.txt',usecols=[1,2,3,4,5],parse_dates=['filing_date'],nrows=1000)
+df=pd.read_csv('data/geoc_inv/geoc_inv.txt',usecols=[1,2,3,4,5],parse_dates=['filing_date'])
 
 
 #Optional: Filter by country code, filing_date or patent_office
 df=df[df["ctry_code"]=='DE']
-df=df[df["patent_office"]=='EP']
-df=df[df["filing_date"]>'2000-01-01']
+df=df[(df["patent_office"]=='EP')|(df["patent_office"]=='DE')]
+#df=df[df["filing_date"]>'1990-01-01']
 
 
 # Convert lat,lon coordinates to x,y (web mercator)
-# wrap the utm.from_latlon function to return a pandas series 
-def pd_from_latlon(args):
-    x,y,a,b=utm.from_latlon(args[0], args[1])
+# Source: https://gis.stackexchange.com/a/268233
+
+def merc_from_arrays(args):
+    lats=args[0]
+    lons=args[1]
+    r_major = 6378137.000
+    x = r_major * np.radians(lons)
+    scale = x/lons
+    y = 180.0/np.pi * np.log(np.tan(np.pi/4.0 + lats * (np.pi/180.0)/2.0)) * scale
     return pd.Series([x, y])
 
+
 # apply to the dataframe
-df[['x','y']]=df[['lat','lng']].apply(pd_from_latlon, axis=1)
+df[['X','Y']]=df[['lat','lng']].apply(merc_from_arrays, axis=1)
 
 
 # Save to file
-df[['x','y']].to_csv('data/raw.csv',header=False,index=False,float_format="%.6f")
+df[['X','Y']].to_csv('data/stored.csv',index=False,float_format="%.6f")
